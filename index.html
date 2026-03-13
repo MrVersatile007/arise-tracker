@@ -458,12 +458,13 @@ window._firebaseSave = (state) => {
     background: var(--panel);
     border: 1px solid var(--border);
     border-radius: 4px;
-    padding: 12px;
+    padding: 14px;
     cursor: pointer;
     transition: all 0.2s;
     position: relative;
     overflow: hidden;
     user-select: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
   }
   .habit-tile::before {
     content: '';
@@ -474,7 +475,7 @@ window._firebaseSave = (state) => {
     transform: scaleX(0);
     transition: transform 0.2s;
   }
-  .habit-tile.checked { border-color: var(--green); background: rgba(16,185,129,0.08); }
+  .habit-tile.checked { border-color: var(--green); background: rgba(16,185,129,0.25); box-shadow: 0 0 12px rgba(16,185,129,0.3); }
   .habit-tile.checked::before { background: var(--green); transform: scaleX(1); }
   .habit-tile:hover:not(.checked) { border-color: rgba(91,141,238,0.4); }
   .habit-icon { font-size: 20px; margin-bottom: 6px; }
