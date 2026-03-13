@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ARISE — Hunter's System</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --void: #030408;
+    --abyss: #080c14;
+    --shadow: #0d1220;
+    --panel: #111827;
+    --border: #1e2d4a;
+    --glow: #5b8dee;
+    --glow2: #8b5cf6;
+    --gold: #f59e0b;
+    --red: #ef4444;
+    --green: #10b981;
+    --text: #c8d6f0;
+    --muted: #4a5a7a;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--void);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content:'';
+    position:fixed;
+    inset:0;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 0%, rgba(91,141,238,0.07) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 100%, rgba(139,92,246,0.07) 0%, transparent 60%);
+    pointer-events:none;
+    z-index:0;
+  }
+  .particles { position:fixed; inset:0; pointer-events:none; z-index:0; overflow:hidden; }
+  .particle {
+    position:absolute; width:2px; height:2px;
+    background:var(--glow); border-radius:50%;
+    animation: float linear infinite; opacity:0;
+  }
+  @keyframes float {
+    0%   { transform:translateY(100vh); opacity:0; }
+    10%  { opacity:0.5; }
+    90%  { opacity:0.2; }
+    100% { transform:translateY(-10vh) translateX(20px); opacity:0; }
+  }
+  .app { position:relative; z-index:1; max-width:900px; margin:0 auto; padding:20px; }
+
+  header { text-align:center; padding:40px 0 30px; }
+  .system-label { font-size:11px; letter-spacing:6px; color:var(--glow); text-transform:uppercase; margin-bottom:8px; opacity:0.7; }
+  header h1 {
+    font-family:'Cinzel', serif; font-size:clamp(32px,7vw,58px); font-weight:900;
+    background: linear-gradient(135deg, #fff 0%, var(--glow) 50%, var(--glow2) 100%);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+    letter-spacing:8px;
+  }
+  .subtitle { font-size:13px; letter-spacing:3px; color:var(--muted); margin-top:6px; text-transform:uppercase; }
+
+  .hunter-card {
+    background: linear-gradient(135deg, var(--panel) 0%, var(--shadow) 100%);
+    border:1px solid var(--border); border-radius:4px; padding:24px; margin-bottom:20px; position:relative; overflow:hidden;
+  }
+  .hunter-card::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:2px;
+    background: linear-gradient(90deg, transparent, var(--glow), var(--glow2), transparent);
+  }
+  .hunter-meta { display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
+  .rank-badge {
+    font-family:'Cinzel', serif; font-size:28px; font-weight:900;
+    width:64px; height:64px; border-radius:4px; display:flex; align-items:center; justify-content:center;
+    border:2px solid; flex-shrink:0; transition:all 0.4s;
+  }
+  .hunter-info { flex:1; min-width:200px; }
+  .hunter-name {
+    font-family:'Cinzel', serif; font-size:20px; font-weight:700; color:#fff; margin-bottom:4px;
+    cursor:text; outline:none; border-bottom:1px dashed transparent; transition:border-color 0.2s;
+  }
+  .hunter-name:focus { border-color:var(--glow); }
+  .hunter-title { font-size:13px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; margin-bottom:12px; }
+  .xp-label { display:flex; justify-content:space-between; font-size:12px; color:var(--muted); margin-bottom:4px; letter-spacing:1px; }
+  .xp-bar { height:6px; background:var(--border); border-radius:3px; overflow:hidden; }
+  .xp-fill {
+    height:100%; background: linear-gradient(90deg, var(--glow), var(--glow2));
+    border-radius:3px; transition:width 0.6s cubic-bezier(0.4,0,0.2,1);
+  }
+  .stats-row { display:grid; grid-template-columns:repeat(auto-fit, minmax(100px,1fr)); gap:10px; margin-top:16px; }
+  .stat-box { background:var(--abyss); border:1px solid var(--border); border-radius:3px; padding:10px; text-align:center; }
+  .stat-val { font-family:'Cinzel', serif; font-size:22px; font-weight:700; color:var(--glow); }
+  .stat-label { font-size:10px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; margin-top:2px; }
+
+  .streak-bar { display:flex; gap:4px; margin-top:10px; flex-wrap:wrap; }
+  .streak-dot { width:10px; height:10px; border-radius:50%; background:var(--border); transition:all 0.3s; }
+  .streak-dot.lit { background: linear-gradient(135deg, var(--glow), var(--glow2)); box-shadow:0 0 6px var(--glow); }
+
+  .tabs {
+    display:flex; gap:2px; margin-bottom:20px;
+    background:var(--abyss); border:1px solid var(--border); border-radius:4px; padding:4px;
+  }
+  .tab {
+    flex:1; padding:10px; background:none; border:none; color:var(--muted);
+    font-family:'Rajdhani', sans-serif; font-size:13px; font-weight:600;
+    letter-spacing:1px; text-transform:uppercase; cursor:pointer; border-radius:3px; transition:all 0.2s;
+  }
+  .tab.active {
+    background: linear-gradient(135deg, rgba(91,141,238,0.15), rgba(139,92,246,0.15));
+    color:#fff; border:1px solid var(--border);
+  }
+  .tab:hover:not(.active) { color:var(--text); }
+  .panel { display:none; }
+  .panel.active { display:block; }
+
+  .section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .section-title { font-family:'Cinzel', serif; font-size:13px; letter-spacing:3px; color:var(--glow); text-transform:uppercase; }
+
+  .quest-list { display:flex; flex-direction:column; gap:8px; margin-bottom:20px; }
+  .quest-item {
+    background:var(--panel); border:1px solid var(--border); border-radius:4px;
+    padding:14px 16px; display:flex; align-items:center; gap:14px; cursor:pointer;
+    transition:all 0.2s; position:relative; overflow:hidden;
+  }
+  .quest-item::before {
+    content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+    background:var(--glow); transform:scaleY(0); transition:transform 0.2s;
+  }
+  .quest-item:hover::before { transform:scaleY(1); }
+  .quest-item:hover { border-color:rgba(91,141,238,0.4); background:rgba(91,141,238,0.05); }
+  .quest-item.done { opacity:0.5; }
+  .quest-item.done::before { background:var(--green); transform:scaleY(1); }
+  .quest-check {
+    width:22px; height:22px; border:2px solid var(--border); border-radius:3px;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    transition:all 0.2s; font-size:13px; color:var(--green);
+  }
+  .quest-item.done .quest-check { background:rgba(16,185,129,0.15); border-color:var(--green); }
+  .quest-info { flex:1; }
+  .quest-name { font-size:15px; font-weight:600; color:#fff; margin-bottom:2px; }
+  .quest-item.done .quest-name { text-decoration:line-through; color:var(--muted); }
+  .quest-sub { font-size:12px; color:var(--muted); letter-spacing:1px; }
+  .quest-xp { font-family:'Cinzel', serif; font-size:13px; color:var(--gold); white-space:nowrap; }
+  .quest-del {
+    background:none; border:none; color:var(--muted); cursor:pointer;
+    padding:4px; font-size:16px; line-height:1; transition:color 0.2s;
+  }
+  .quest-del:hover { color:var(--red); }
+
+  .add-panel { background:var(--panel); border:1px solid var(--border); border-radius:4px; padding:16px; margin-bottom:20px; }
+  .add-row { display:flex; gap:8px; flex-wrap:wrap; }
+  .add-row input, .add-row select {
+    background:var(--abyss); border:1px solid var(--border); border-radius:3px;
+    color:var(--text); font-family:'Rajdhani', sans-serif; font-size:14px;
+    padding:10px 12px; outline:none; transition:border-color 0.2s;
+  }
+  .add-row input { flex:1; min-width:160px; }
+  .add-row input:focus, .add-row select:focus { border-color:var(--glow); }
+  .add-row select option { background:var(--panel); }
+  .btn {
+    background: linear-gradient(135deg, rgba(91,141,238,0.2), rgba(139,92,246,0.2));
+    border:1px solid var(--glow); border-radius:3px; color:#fff;
+    font-family:'Rajdhani', sans-serif; font-size:13px; font-weight:700;
+    letter-spacing:2px; padding:10px 18px; cursor:pointer; transition:all 0.2s; text-transform:uppercase;
+  }
+  .btn:hover { background:rgba(91,141,238,0.3); box-shadow:0 0 16px rgba(91,141,238,0.3); }
+  .btn-sm { padding:6px 12px; font-size:11px; }
+  .btn-danger { border-color:var(--red); }
+  .btn-danger:hover { background:rgba(239,68,68,0.2); box-shadow:0 0 16px rgba(239,68,68,0.2); }
+  .btn-success { border-color:var(--green); }
+  .btn-success:hover { background:rgba(16,185,129,0.2); }
+
+  .reward-list { display:flex; flex-direction:column; gap:8px; margin-bottom:20px; }
+  .reward-item {
+    background:var(--panel); border:1px solid var(--border); border-radius:4px;
+    padding:14px 16px; display:flex; align-items:center; gap:14px;
+  }
+  .reward-rank { font-family:'Cinzel', serif; font-size:14px; font-weight:700; width:32px; text-align:center; flex-shrink:0; }
+  .reward-info { flex:1; }
+  .reward-name { font-size:15px; font-weight:600; color:#fff; margin-bottom:2px; }
+  .reward-desc { font-size:12px; color:var(--muted); }
+  .reward-icon { font-size:20px; }
+
+  .ach-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(180px,1fr)); gap:10px; }
+  .ach-card {
+    background:var(--panel); border:1px solid var(--border); border-radius:4px;
+    padding:16px; text-align:center; transition:all 0.3s; position:relative; overflow:hidden;
+  }
+  .ach-card.unlocked { border-color:var(--gold); background: linear-gradient(135deg, var(--panel), rgba(245,158,11,0.08)); }
+  .ach-card.unlocked::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+  .ach-icon { font-size:26px; margin-bottom:8px; filter:grayscale(100%) brightness(0.3); }
+  .ach-card.unlocked .ach-icon { filter:none; }
+  .ach-name { font-family:'Cinzel', serif; font-size:11px; color:#fff; margin-bottom:4px; }
+  .ach-desc { font-size:11px; color:var(--muted); line-height:1.4; }
+  .ach-card.unlocked .ach-desc { color:var(--gold); }
+
+  .log-list { display:flex; flex-direction:column; gap:6px; }
+  .log-item {
+    background:var(--panel); border:1px solid var(--border); border-radius:3px;
+    padding:10px 14px; display:flex; gap:12px; align-items:baseline; font-size:13px;
+  }
+  .log-time { color:var(--muted); white-space:nowrap; font-size:11px; letter-spacing:1px; }
+  .log-msg { color:var(--text); flex:1; }
+  .log-xp { color:var(--gold); font-family:'Cinzel', serif; font-size:12px; white-space:nowrap; }
+
+  .levelup-overlay {
+    position:fixed; inset:0; background:rgba(3,4,8,0.94); z-index:100;
+    display:flex; align-items:center; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity 0.3s;
+  }
+  .levelup-overlay.show { opacity:1; pointer-events:all; }
+  .levelup-box {
+    text-align:center; padding:50px 60px; position:relative;
+    background:var(--abyss); border-radius:6px;
+    border:1px solid var(--border);
+    box-shadow: 0 0 80px rgba(91,141,238,0.3), 0 0 200px rgba(139,92,246,0.1);
+  }
+  .levelup-glow {
+    position:absolute; inset:-1px; border-radius:6px; z-index:-1;
+    background: linear-gradient(135deg, var(--glow), var(--glow2), var(--glow));
+    background-size:200% 200%;
+    animation: glowAnim 2s linear infinite;
+    opacity:0.7;
+  }
+  @keyframes glowAnim { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+  .levelup-title { font-size:11px; letter-spacing:6px; color:var(--glow); text-transform:uppercase; margin-bottom:12px; }
+  .levelup-rank {
+    font-family:'Cinzel', serif; font-size:80px; font-weight:900; line-height:1; margin-bottom:8px;
+    animation: rankPulse 1s ease infinite alternate;
+  }
+  @keyframes rankPulse {
+    from { text-shadow:0 0 20px currentColor; transform:scale(1); }
+    to   { text-shadow:0 0 60px currentColor, 0 0 120px currentColor; transform:scale(1.05); }
+  }
+  .levelup-sub { font-size:14px; letter-spacing:3px; color:var(--text); margin-bottom:6px; text-transform:uppercase; }
+  .levelup-reward {
+    font-size:14px; color:var(--gold); margin:16px 0 24px; padding:12px 20px;
+    border:1px solid rgba(245,158,11,0.3); border-radius:3px; background:rgba(245,158,11,0.08);
+    line-height:1.5;
+  }
+  .divider { height:1px; background: linear-gradient(90deg, transparent, var(--border), transparent); margin:20px 0; }
+  .empty {
+    text-align:center; padding:30px; color:var(--muted); font-size:13px; letter-spacing:1px;
+    border:1px dashed var(--border); border-radius:4px;
+  }
+  .empty span { display:block; font-size:28px; margin-bottom:8px; }
+
+  .ai-intro {
+    font-size:14px; color:var(--muted); letter-spacing:0.5px; margin-bottom:16px;
+    padding:12px 16px; border-left:2px solid var(--glow);
+    background:rgba(91,141,238,0.05); border-radius:0 4px 4px 0;
+  }
+  .add-panel textarea {
+    background:var(--abyss); border:1px solid var(--border); border-radius:3px;
+    color:var(--text); font-family:'Rajdhani', sans-serif; font-size:14px;
+    padding:10px 12px; outline:none; transition:border-color 0.2s;
+    resize:vertical; width:100%; line-height:1.5;
+  }
+  .add-panel textarea:focus { border-color:var(--glow); }
+  .ai-loading {
+    display:flex; align-items:center; justify-content:center;
+    padding:40px; border:1px dashed var(--border); border-radius:4px; margin-bottom:20px;
+  }
+  .ai-loading-inner { text-align:center; }
+  .ai-spinner {
+    width:36px; height:36px; border:2px solid var(--border);
+    border-top-color:var(--glow); border-radius:50%;
+    animation:spin 0.8s linear infinite; margin:0 auto 14px;
+  }
+  @keyframes spin { to{transform:rotate(360deg)} }
+  .ai-loading-text { font-size:13px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; }
+  .ai-error {
+    padding:14px 16px; border:1px solid var(--red); border-radius:4px;
+    background:rgba(239,68,68,0.08); color:var(--red); font-size:13px; margin-bottom:16px;
+  }
+  .suggested-item {
+    background:var(--panel); border:1px solid var(--border); border-radius:4px;
+    padding:14px 16px; display:flex; align-items:center; gap:14px;
+    border-left:3px solid var(--glow2);
+  }
+  .suggested-info { flex:1; }
+  .suggested-name { font-size:15px; font-weight:600; color:#fff; margin-bottom:2px; }
+  .suggested-reason { font-size:12px; color:var(--muted); line-height:1.4; }
+  .suggested-xp { font-family:'Cinzel', serif; font-size:13px; color:var(--gold); white-space:nowrap; }
+  .suggested-add {
+    background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05));
+    border:1px solid var(--green); border-radius:3px; color:var(--green);
+    font-family:'Rajdhani', sans-serif; font-size:12px; font-weight:700;
+    letter-spacing:1px; padding:6px 12px; cursor:pointer; transition:all 0.2s;
+    white-space:nowrap; text-transform:uppercase;
+  }
+  .suggested-add:hover { background:rgba(16,185,129,0.25); box-shadow:0 0 12px rgba(16,185,129,0.25); }
+  .suggested-add:disabled { opacity:0.4; cursor:default; }
+  .suggested-add.added { color:var(--muted); border-color:var(--muted); }
+
+  @media(max-width:520px) {
+    .add-row { flex-direction:column; }
+    .add-row input, .add-row select, .btn { width:100%; }
+    .hunter-meta { flex-direction:column; }
+    .tab { font-size:10px; padding:8px 3px; letter-spacing:0; }
+    .levelup-box { padding:30px 20px; }
+    .levelup-rank { font-size:60px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="particles" id="particles"></div>
+
+<div class="levelup-overlay" id="levelupOverlay">
+  <div class="levelup-box">
+    <div class="levelup-glow"></div>
+    <div class="levelup-title">⚔ Rank Up ⚔</div>
+    <div class="levelup-rank" id="luRank">S</div>
+    <div class="levelup-sub" id="luTitle">Shadow Monarch</div>
+    <div class="levelup-reward" id="luReward"></div>
+    <button class="btn" onclick="closeLevelUp()">I WILL ARISE</button>
+  </div>
+</div>
+
+<div class="app">
+  <header>
+    <div class="system-label">◈ System Interface Active ◈</div>
+    <h1>ARISE</h1>
+    <div class="subtitle">Hunter's Daily System</div>
+  </header>
+
+  <div class="hunter-card">
+    <div class="hunter-meta">
+      <div class="rank-badge" id="rankBadge">E</div>
+      <div class="hunter-info">
+        <div class="hunter-name" id="hunterName" contenteditable="true" spellcheck="false">Hunter</div>
+        <div class="hunter-title" id="hunterTitle">The Weakest</div>
+        <div>
+          <div class="xp-label">
+            <span>EXP</span>
+            <span id="xpLabel">0 / 200</span>
+          </div>
+          <div class="xp-bar"><div class="xp-fill" id="xpFill" style="width:0%"></div></div>
+        </div>
+        <div class="streak-bar" id="streakBar"></div>
+      </div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-box"><div class="stat-val" id="statLevel">1</div><div class="stat-label">Rank Tier</div></div>
+      <div class="stat-box"><div class="stat-val" id="statStreak">0</div><div class="stat-label">Day Streak</div></div>
+      <div class="stat-box"><div class="stat-val" id="statDone">0</div><div class="stat-label">Completed</div></div>
+      <div class="stat-box"><div class="stat-val" id="statTotal">0</div><div class="stat-label">Total XP</div></div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('daily')">Daily Quests</button>
+    <button class="tab" onclick="switchTab('weekly')">Weekly Gates</button>
+    <button class="tab" onclick="switchTab('ai')">✦ AI Scout</button>
+    <button class="tab" onclick="switchTab('rewards')">Rewards</button>
+    <button class="tab" onclick="switchTab('log')">Log</button>
+  </div>
+
+  <!-- Daily -->
+  <div class="panel active" id="panel-daily">
+    <div class="section-header">
+      <div class="section-title">◈ Daily Quests</div>
+      <button class="btn btn-sm btn-success" onclick="resetDaily()">New Day</button>
+    </div>
+    <div class="add-panel">
+      <div class="add-row">
+        <input type="text" id="dailyInput" placeholder="Quest name (e.g. Morning Run, Meditate)..."/>
+        <select id="dailyXP">
+          <option value="10">+10 XP — Easy</option>
+          <option value="25" selected>+25 XP — Medium</option>
+          <option value="50">+50 XP — Hard</option>
+          <option value="100">+100 XP — Legendary</option>
+        </select>
+        <button class="btn" onclick="addQuest('daily')">+ Add</button>
+      </div>
+    </div>
+    <div class="quest-list" id="dailyList"></div>
+  </div>
+
+  <!-- Weekly -->
+  <div class="panel" id="panel-weekly">
+    <div class="section-header">
+      <div class="section-title">◈ Weekly Gates</div>
+      <button class="btn btn-sm btn-success" onclick="resetWeekly()">New Week</button>
+    </div>
+    <div class="add-panel">
+      <div class="add-row">
+        <input type="text" id="weeklyInput" placeholder="Gate name (e.g. Read 3 chapters, Gym 4x)..."/>
+        <select id="weeklyXP">
+          <option value="50">+50 XP — Easy</option>
+          <option value="100" selected>+100 XP — Medium</option>
+          <option value="200">+200 XP — Hard</option>
+          <option value="500">+500 XP — Monarch</option>
+        </select>
+        <button class="btn" onclick="addQuest('weekly')">+ Add</button>
+      </div>
+    </div>
+    <div class="quest-list" id="weeklyList"></div>
+  </div>
+
+  <!-- Rewards -->
+  <div class="panel" id="panel-rewards">
+    <div class="section-header">
+      <div class="section-title">◈ Rank Rewards</div>
+    </div>
+    <div class="reward-list" id="rewardList"></div>
+    <div class="divider"></div>
+    <div class="section-header">
+      <div class="section-title">◈ Achievements</div>
+    </div>
+    <div class="ach-grid" id="achGrid"></div>
+  </div>
+
+  <!-- AI Scout -->
+  <div class="panel" id="panel-ai">
+    <div class="section-header">
+      <div class="section-title">◈ AI Quest Scout</div>
+      <button class="btn btn-sm btn-danger" onclick="clearGroqKey()">Reset Key</button>
+    </div>
+    <div class="ai-intro">
+      Powered by <strong style="color:var(--glow)">Groq + Llama 3</strong> — free, no credit card needed. Describe your goals and the System generates quests tailored to you.
+    </div>
+    <div class="add-panel">
+      <div class="add-row" style="flex-direction:column; gap:10px;">
+        <textarea id="aiGoalInput" placeholder="e.g. I want to build muscle, read more books, and wake up earlier..." rows="3"></textarea>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <select id="aiDifficulty">
+            <option value="balanced">Balanced difficulty</option>
+            <option value="easy">Start easy — I'm a beginner</option>
+            <option value="hard">Push me hard — no mercy</option>
+          </select>
+          <button class="btn" id="aiGenerateBtn" onclick="generateQuests()">⚡ Generate Quests</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="aiLoading" style="display:none;" class="ai-loading">
+      <div class="ai-loading-inner">
+        <div class="ai-spinner"></div>
+        <div class="ai-loading-text">System is scanning your potential...</div>
+      </div>
+    </div>
+
+    <div id="aiError" style="display:none;" class="ai-error"></div>
+
+    <div id="aiResults" style="display:none;">
+      <div class="section-header" style="margin-top:4px;">
+        <div class="section-title">◈ Suggested Daily Quests</div>
+        <button class="btn btn-sm btn-success" onclick="addAllSuggested('daily')">Add All</button>
+      </div>
+      <div class="quest-list" id="aiDailyList"></div>
+
+      <div class="section-header" style="margin-top:12px;">
+        <div class="section-title">◈ Suggested Weekly Gates</div>
+        <button class="btn btn-sm btn-success" onclick="addAllSuggested('weekly')">Add All</button>
+      </div>
+      <div class="quest-list" id="aiWeeklyList"></div>
+    </div>
+  </div>
+
+  <!-- Log -->
+  <div class="panel" id="panel-log">
+    <div class="section-header">
+      <div class="section-title">◈ Activity Log</div>
+      <button class="btn btn-sm btn-danger" onclick="clearLog()">Clear</button>
+    </div>
+    <div class="log-list" id="logList"></div>
+  </div>
+</div>
+
+<script>
+const RANKS = [
+  { rank:'E', title:'The Weakest',      color:'#6b7280', xpNeeded:0    },
+  { rank:'D', title:'Gate Raider',      color:'#10b981', xpNeeded:200  },
+  { rank:'C', title:'Dungeon Breaker',  color:'#3b82f6', xpNeeded:500  },
+  { rank:'B', title:'Shadow Walker',    color:'#8b5cf6', xpNeeded:1000 },
+  { rank:'A', title:"Monarch's Blade",  color:'#f59e0b', xpNeeded:2000 },
+  { rank:'S', title:'Shadow Monarch',   color:'#ef4444', xpNeeded:4000 },
+];
+const REWARDS = [
+  { rank:'E', name:'Awakened',         desc:'Treat yourself to a favorite snack or drink 🍫',                     icon:'🍫' },
+  { rank:'D', name:'Gate Raider',      desc:'Your body is awakening. Buy new workout gear or a great meal 🍱',     icon:'🍱' },
+  { rank:'C', name:'Dungeon Breaker',  desc:'A true hunter. Full rest day + anime binge you\'ve been delaying 🎬', icon:'🎬' },
+  { rank:'B', name:'Shadow Walker',    desc:'Half-way to the throne. Buy that thing you\'ve been saving for 🛍️',  icon:'🛍️' },
+  { rank:'A', name:"Monarch's Blade",  desc:'Elite rank reached. Plan a solo trip or special experience ✈️',      icon:'✈️' },
+  { rank:'S', name:'Shadow Monarch',   desc:'You have stood up. Any major reward you desire is fully earned 👑',   icon:'👑' },
+];
+const ACHIEVEMENTS = [
+  { id:'first',    icon:'⚔️', name:'First Blood',     desc:'Complete your first quest',        check:s=>s.totalDone>=1 },
+  { id:'s3',       icon:'🔥', name:'Burning Will',    desc:'3-day streak',                     check:s=>s.streak>=3 },
+  { id:'s7',       icon:'🌊', name:'Unbroken',        desc:'7-day streak',                     check:s=>s.streak>=7 },
+  { id:'xp500',    icon:'💠', name:'Power Surge',     desc:'Earn 500 total XP',                check:s=>s.totalXP>=500 },
+  { id:'xp2000',   icon:'🌀', name:'Shadow Essence',  desc:'Earn 2000 total XP',               check:s=>s.totalXP>=2000 },
+  { id:'d10',      icon:'📜', name:'Quest Veteran',   desc:'Complete 10 quests total',         check:s=>s.totalDone>=10 },
+  { id:'d50',      icon:'🏰', name:'Dungeon Master',  desc:'Complete 50 quests total',         check:s=>s.totalDone>=50 },
+  { id:'rankD',    icon:'🟢', name:'Gate Raider',     desc:'Reach D Rank',                     check:s=>getRankIdx(s.totalXP)>=1 },
+  { id:'rankS',    icon:'🔴', name:'The Monarch',     desc:'Reach S Rank',                     check:s=>getRankIdx(s.totalXP)>=5 },
+  { id:'weekly1',  icon:'🗝️', name:'Gate Opener',    desc:'Complete a weekly gate',           check:s=>s.weeklyDone>=1 },
+];
+
+function getRankIdx(xp) {
+  let i=0;
+  for(let r=RANKS.length-1;r>=0;r--) { if(xp>=RANKS[r].xpNeeded){i=r;break;} }
+  return i;
+}
+function getXPInfo(xp) {
+  const i=getRankIdx(xp);
+  const curr=RANKS[i].xpNeeded;
+  const next=RANKS[i+1]?RANKS[i+1].xpNeeded:curr+1000;
+  return { i, curr, next, pct:Math.min(100,Math.max(0,((xp-curr)/(next-curr))*100)) };
+}
+function uid() { return Math.random().toString(36).slice(2); }
+function timeStr() { return new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}); }
+function today() { return new Date().toISOString().split('T')[0]; }
+
+let state = (() => {
+  const def = { totalXP:0, totalDone:0, weeklyDone:0, streak:0, lastDate:'', dailyQuests:[], weeklyQuests:[], log:[], unlockedAchs:[] };
+  try { return Object.assign(def, JSON.parse(localStorage.getItem('arise_v3')||'{}')); } catch(e){ return def; }
+})();
+const save = () => localStorage.setItem('arise_v3', JSON.stringify(state));
+
+function addLog(msg, xp) {
+  state.log.push({msg, xp, time:timeStr()});
+  if(state.log.length>100) state.log.shift();
+}
+
+function render() {
+  const {i,curr,next,pct} = getXPInfo(state.totalXP);
+  const rank = RANKS[i];
+  const badge = document.getElementById('rankBadge');
+  badge.textContent = rank.rank;
+  badge.style.color = rank.color;
+  badge.style.borderColor = rank.color;
+  badge.style.boxShadow = `0 0 24px ${rank.color}66`;
+  document.getElementById('hunterTitle').textContent = rank.title;
+  document.getElementById('xpFill').style.width = pct+'%';
+  document.getElementById('xpLabel').textContent = `${state.totalXP-curr} / ${next-curr} XP`;
+  document.getElementById('statLevel').textContent = i+1;
+  document.getElementById('statStreak').textContent = state.streak;
+  document.getElementById('statDone').textContent = state.totalDone;
+  document.getElementById('statTotal').textContent = state.totalXP;
+  // Streak dots
+  const sb = document.getElementById('streakBar');
+  sb.innerHTML='';
+  for(let d=0;d<7;d++){
+    const dot=document.createElement('div');
+    dot.className='streak-dot'+(d<(state.streak%8)?' lit':'');
+    sb.appendChild(dot);
+  }
+  renderQuests('daily');
+  renderQuests('weekly');
+  renderRewards();
+  renderAchievements();
+  renderLog();
+}
+
+function renderQuests(type) {
+  const el = document.getElementById(type+'List');
+  const qs = type==='daily'?state.dailyQuests:state.weeklyQuests;
+  if(!qs.length){ el.innerHTML='<div class="empty"><span>⚔️</span>No quests yet. Add one above to begin.</div>'; return; }
+  el.innerHTML='';
+  qs.forEach(q=>{
+    const div=document.createElement('div');
+    div.className='quest-item'+(q.done?' done':'');
+    div.innerHTML=`
+      <div class="quest-check">${q.done?'✓':''}</div>
+      <div class="quest-info">
+        <div class="quest-name">${escHtml(q.name)}</div>
+        <div class="quest-sub">${type==='daily'?'Daily Quest':'Weekly Gate'}</div>
+      </div>
+      <div class="quest-xp">+${q.xp} XP</div>
+      <button class="quest-del" data-id="${q.id}" data-type="${type}">✕</button>`;
+    div.addEventListener('click', e=>{
+      if(e.target.classList.contains('quest-del')||e.target.closest('.quest-del')) return;
+      toggleQuest(type,q.id);
+    });
+    div.querySelector('.quest-del').addEventListener('click',e=>{ e.stopPropagation(); deleteQuest(type,q.id); });
+    el.appendChild(div);
+  });
+}
+
+function renderRewards() {
+  const idx=getRankIdx(state.totalXP);
+  const el=document.getElementById('rewardList');
+  el.innerHTML='';
+  REWARDS.forEach((r,i)=>{
+    const unlocked=i<=idx;
+    const div=document.createElement('div');
+    div.className='reward-item';
+    div.style.opacity=unlocked?'1':'0.35';
+    div.innerHTML=`
+      <div class="reward-rank" style="color:${RANKS[i].color}">${r.rank}</div>
+      <div class="reward-info">
+        <div class="reward-name">${r.name}</div>
+        <div class="reward-desc">${unlocked?r.desc:'Reach '+r.rank+' Rank to unlock this reward'}</div>
+      </div>
+      <div class="reward-icon">${unlocked?r.icon:'🔒'}</div>`;
+    el.appendChild(div);
+  });
+}
+
+function renderAchievements() {
+  const el=document.getElementById('achGrid');
+  el.innerHTML='';
+  ACHIEVEMENTS.forEach(a=>{
+    const unlocked=a.check(state);
+    if(unlocked&&!state.unlockedAchs.includes(a.id)){
+      state.unlockedAchs.push(a.id);
+      addLog(`Achievement: ${a.name}`,0);
+    }
+    const div=document.createElement('div');
+    div.className='ach-card'+(unlocked?' unlocked':'');
+    div.innerHTML=`<div class="ach-icon">${a.icon}</div><div class="ach-name">${a.name}</div><div class="ach-desc">${unlocked?a.desc:'???'}</div>`;
+    el.appendChild(div);
+  });
+}
+
+function renderLog() {
+  const el=document.getElementById('logList');
+  if(!state.log.length){ el.innerHTML='<div class="empty"><span>📜</span>No activity yet.</div>'; return; }
+  el.innerHTML='';
+  [...state.log].reverse().slice(0,50).forEach(l=>{
+    const div=document.createElement('div');
+    div.className='log-item';
+    div.innerHTML=`<span class="log-time">${l.time}</span><span class="log-msg">${escHtml(l.msg)}</span>${l.xp?`<span class="log-xp">+${l.xp} XP</span>`:''}`;
+    el.appendChild(div);
+  });
+}
+
+function addQuest(type) {
+  const inp=document.getElementById(type+'Input');
+  const xpSel=document.getElementById(type+'XP');
+  const name=inp.value.trim();
+  if(!name){inp.focus();return;}
+  const q={id:uid(),name,xp:parseInt(xpSel.value),done:false};
+  if(type==='daily') state.dailyQuests.push(q);
+  else state.weeklyQuests.push(q);
+  addLog(`Quest added: ${name}`,0);
+  inp.value='';
+  save(); render();
+}
+
+function toggleQuest(type,id) {
+  const qs=type==='daily'?state.dailyQuests:state.weeklyQuests;
+  const q=qs.find(q=>q.id===id);
+  if(!q) return;
+  const prevIdx=getRankIdx(state.totalXP);
+  if(!q.done){
+    q.done=true;
+    state.totalXP+=q.xp;
+    state.totalDone++;
+    if(type==='weekly') state.weeklyDone++;
+    // Streak
+    const t=today();
+    if(state.lastDate!==t){ state.streak++; state.lastDate=t; }
+    addLog(`Completed: ${q.name}`,q.xp);
+    const newIdx=getRankIdx(state.totalXP);
+    if(newIdx>prevIdx) setTimeout(()=>showLevelUp(newIdx),400);
+  } else {
+    q.done=false;
+    state.totalXP=Math.max(0,state.totalXP-q.xp);
+    state.totalDone=Math.max(0,state.totalDone-1);
+    addLog(`Reverted: ${q.name}`,0);
+  }
+  save(); render();
+}
+
+function deleteQuest(type,id) {
+  if(type==='daily') state.dailyQuests=state.dailyQuests.filter(q=>q.id!==id);
+  else state.weeklyQuests=state.weeklyQuests.filter(q=>q.id!==id);
+  save(); render();
+}
+
+function resetDaily() {
+  if(!confirm('Reset all daily quests for a new day?')) return;
+  state.dailyQuests.forEach(q=>q.done=false);
+  addLog('New day — daily quests reset.',0);
+  save(); render();
+}
+
+function resetWeekly() {
+  if(!confirm('Reset all weekly gates for a new week?')) return;
+  state.weeklyQuests.forEach(q=>q.done=false);
+  addLog('New week — weekly gates reset.',0);
+  save(); render();
+}
+
+function clearLog() {
+  if(!confirm('Clear activity log?')) return;
+  state.log=[]; save(); render();
+}
+
+function showLevelUp(idx) {
+  const rank=RANKS[idx]; const reward=REWARDS[idx];
+  document.getElementById('luRank').textContent=rank.rank;
+  document.getElementById('luRank').style.color=rank.color;
+  document.getElementById('luTitle').textContent=rank.title;
+  document.getElementById('luReward').textContent=reward?`${reward.icon} ${reward.desc}`:'';
+  addLog(`Rank Up! ${rank.rank} Rank — ${rank.title}`,0);
+  document.getElementById('levelupOverlay').classList.add('show');
+}
+
+function closeLevelUp() {
+  document.getElementById('levelupOverlay').classList.remove('show');
+}
+
+function switchTab(name) {
+  const names=['daily','weekly','ai','rewards','log'];
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',names[i]===name));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+name));
+}
+
+let aiSuggestions = { daily:[], weekly:[] };
+
+function getGroqKey() {
+  let key = localStorage.getItem('arise_groq_key') || '';
+  if (!key) {
+    key = prompt('Enter your free Groq API key:\n\n1. Go to console.groq.com\n2. Sign up free (no credit card)\n3. Create API Keys → Create Key\n4. Paste it here');
+    if (!key || !key.trim()) return null;
+    key = key.trim();
+    localStorage.setItem('arise_groq_key', key);
+  }
+  return key;
+}
+
+function clearGroqKey() {
+  localStorage.removeItem('arise_groq_key');
+  alert('API key cleared. You\'ll be asked for it again next time.');
+}
+
+async function generateQuests() {
+  const goal = document.getElementById('aiGoalInput').value.trim();
+  if(!goal) { document.getElementById('aiGoalInput').focus(); return; }
+  const difficulty = document.getElementById('aiDifficulty').value;
+
+  document.getElementById('aiLoading').style.display='flex';
+  document.getElementById('aiResults').style.display='none';
+  document.getElementById('aiError').style.display='none';
+  document.getElementById('aiGenerateBtn').disabled=true;
+
+  const diffMap = {
+    balanced: 'Mix easy, medium, and hard tasks.',
+    easy: 'Keep tasks beginner-friendly and low-barrier.',
+    hard: 'Make tasks challenging and demanding — no easy options.'
+  };
+
+  const prompt = `You are a Solo Leveling-themed habit tracker AI. A hunter has described their goals:
+
+"${goal}"
+
+Difficulty setting: ${diffMap[difficulty]}
+
+Generate exactly 5 daily quests and 3 weekly gates for this hunter. Each quest should be specific, actionable, and tied to their goals.
+
+Respond ONLY with valid JSON in this exact format, nothing else:
+{
+  "daily": [
+    {"name": "Quest name", "xp": 25, "reason": "Why this helps their goal"},
+    ...
+  ],
+  "weekly": [
+    {"name": "Gate name", "xp": 100, "reason": "Why this helps their goal"},
+    ...
+  ]
+}
+
+XP rules:
+- Daily: 10 (trivial), 25 (easy), 50 (medium), 100 (hard)
+- Weekly: 50 (easy), 100 (medium), 200 (hard), 500 (legendary)
+
+Quest names should be short and punchy (max 6 words). Make them feel like Solo Leveling missions.`;
+
+  // ── Get API key ────────────────────────────────────────────────────
+  const apiKey = getGroqKey();
+  if (!apiKey) return;
+
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        max_tokens: 1000,
+        temperature: 0.7,
+        messages: [
+          { role: 'system', content: 'You are a Solo Leveling-themed habit tracker AI. Always respond with valid JSON only — no markdown, no explanation, no extra text.' },
+          { role: 'user', content: prompt }
+        ]
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const text = data.choices?.[0]?.message?.content || '';
+    const clean = text.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+
+    aiSuggestions = parsed;
+    renderAISuggestions();
+    document.getElementById('aiResults').style.display='block';
+  } catch(err) {
+    document.getElementById('aiError').style.display='block';
+    document.getElementById('aiError').textContent='System error: ' + (err.message||'Failed to contact the System. Try again.');
+  } finally {
+    document.getElementById('aiLoading').style.display='none';
+    document.getElementById('aiGenerateBtn').disabled=false;
+  }
+}
+
+function renderAISuggestions() {
+  ['daily','weekly'].forEach(type=>{
+    const el=document.getElementById('ai'+type.charAt(0).toUpperCase()+type.slice(1)+'List');
+    el.innerHTML='';
+    const items=aiSuggestions[type]||[];
+    if(!items.length){ el.innerHTML='<div class="empty"><span>⚔️</span>No suggestions.</div>'; return; }
+    items.forEach((q,i)=>{
+      const div=document.createElement('div');
+      div.className='suggested-item';
+      div.style.borderLeftColor = type==='daily'?'var(--glow)':'var(--glow2)';
+      div.innerHTML=`
+        <div class="suggested-info">
+          <div class="suggested-name">${escHtml(q.name)}</div>
+          <div class="suggested-reason">${escHtml(q.reason)}</div>
+        </div>
+        <div class="suggested-xp">+${q.xp} XP</div>
+        <button class="suggested-add" id="aiBtn-${type}-${i}" onclick="addSuggested('${type}',${i})">+ Add</button>`;
+      el.appendChild(div);
+    });
+  });
+}
+
+function addSuggested(type, idx) {
+  const q = aiSuggestions[type]?.[idx];
+  if(!q) return;
+  const quest={id:uid(), name:q.name, xp:q.xp, done:false};
+  if(type==='daily') state.dailyQuests.push(quest);
+  else state.weeklyQuests.push(quest);
+  addLog(`AI Quest added: ${q.name}`, 0);
+  save(); render();
+  const btn=document.getElementById(`aiBtn-${type}-${idx}`);
+  if(btn){ btn.textContent='✓ Added'; btn.disabled=true; btn.classList.add('added'); }
+}
+
+function addAllSuggested(type) {
+  const items=aiSuggestions[type]||[];
+  items.forEach((_,i)=>addSuggested(type,i));
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Particles
+(()=>{
+  const c=document.getElementById('particles');
+  for(let i=0;i<18;i++){
+    const p=document.createElement('div');
+    p.className='particle';
+    p.style.left=Math.random()*100+'vw';
+    p.style.animationDuration=(7+Math.random()*12)+'s';
+    p.style.animationDelay=(Math.random()*12)+'s';
+    if(Math.random()>0.6){ p.style.background='var(--glow2)'; p.style.width='3px'; p.style.height='3px'; }
+    c.appendChild(p);
+  }
+})();
+
+// Enter key
+document.getElementById('dailyInput').addEventListener('keydown',e=>{if(e.key==='Enter')addQuest('daily');});
+document.getElementById('weeklyInput').addEventListener('keydown',e=>{if(e.key==='Enter')addQuest('weekly');});
+document.getElementById('hunterName').addEventListener('blur',save);
+
+render();
+</script>
+</body>
+</html>
